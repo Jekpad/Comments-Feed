@@ -28,6 +28,10 @@ let comments = [
 
 renderComments();
 
+/**
+ * Отрисовка комментариев
+ * @return void
+ */
 function renderComments() {
     document.getElementById(`comments`).innerHTML = comments
         .map((comment, index) => {
@@ -53,6 +57,7 @@ function renderComments() {
         .join(``);
     initCommentLikeListener();
     initCommentStartEditListener();
+    initCommentAnswerListener();
 }
 
 /**
@@ -115,6 +120,27 @@ function initCommentStartEditListener() {
     });
 }
 
+/**
+ * Возможность комментировать чужой пость
+ * @return void
+ */
+function initCommentAnswerListener() {
+    const commentsElements = document.querySelectorAll(`.comment`);
+    commentsElements.forEach((comment) => {
+        comment.addEventListener(`click`, (event) => {
+            const commentObject = comments[comment.dataset.index];
+            let commentText = commentObject.text;
+            commentText = commentText
+                .replaceAll("<div class='quote'>", "QUOTE_BEGIN")
+                .replaceAll("<br>", "QUOTE_NEXT")
+                .replaceAll("</div>", "QUOTE_END");
+            commentInput.value = `QUOTE_BEGIN${commentObject.name}QUOTE_NEXT${commentText}QUOTE_END\n`;
+            validateCommentForm();
+            nameInput.scrollIntoView();
+        });
+    });
+}
+
 submitButton.addEventListener(`click`, () => {
     addComment(nameInput.value, commentInput.value, getFormatedDate());
 
@@ -167,8 +193,10 @@ function validateCommentForm() {
  * @return void
  */
 function addComment(name, comment, date) {
+    comment = sanitizeHTML(comment);
+    comment = comment.replaceAll("QUOTE_BEGIN", "<div class='quote'>").replaceAll("QUOTE_NEXT", "<br>").replaceAll("QUOTE_END", "</div>");
     comments.push({
-        name: name,
+        name: sanitizeHTML(name),
         date: date,
         text: comment,
         likes: 0,
@@ -203,4 +231,8 @@ function getFormatedDate() {
     let minutes = formatDateDigits(date.getMinutes());
 
     return `${day}.${month}.${year} ${hours}:${minutes}`;
+}
+
+function sanitizeHTML(text) {
+    return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
