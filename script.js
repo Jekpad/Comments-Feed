@@ -105,15 +105,23 @@ function initCommentStartEditListener() {
             button.replaceWith(newButton);
 
             newButton.addEventListener(`click`, (event) => {
-                event.stopPropagation;
+                event.stopPropagation();
                 if (newCommentText.value === "") return;
-                commentObject.text = newCommentText.value;
+                commentObject.text = sanitizeHTML(newCommentText.value);
                 renderComments();
             });
 
             commentsSection.addEventListener(`keyup`, (event) => {
-                if (event.key != "Enter" || newCommentText.value === "") return;
-                commentObject.text = newCommentText.value;
+                const newComment = sanitizeHTML(newCommentText.value);
+                if (event.key != "Enter") {
+                    if (newComment === "") {
+                        newButton.disabled = true;
+                    } else {
+                        newButton.disabled = false;
+                    }
+                    return;
+                }
+                commentObject.text = sanitizeHTML(newCommentText.value);
                 renderComments();
             });
         });
@@ -121,7 +129,7 @@ function initCommentStartEditListener() {
 }
 
 /**
- * Возможность комментировать чужой пость
+ * Возможность комментировать чужой пост
  * @return void
  */
 function initCommentAnswerListener() {
@@ -136,7 +144,10 @@ function initCommentAnswerListener() {
                 .replaceAll("</div>", "QUOTE_END");
             commentInput.value = `QUOTE_BEGIN${commentObject.name}QUOTE_NEXT${commentText}QUOTE_END\n`;
             validateCommentForm();
-            nameInput.scrollIntoView();
+
+            // if (event.target.dataset.index != undefined) {
+            //     nameInput.scrollIntoView();
+            // }
         });
     });
 }
@@ -166,6 +177,9 @@ _deleteLastComment.addEventListener(`click`, () => {
     input.addEventListener(`input`, () => {
         validateCommentForm();
     });
+    input.addEventListener(`keyup`, () => {
+        validateCommentForm();
+    });
 });
 
 /**
@@ -173,7 +187,9 @@ _deleteLastComment.addEventListener(`click`, () => {
  * @return boolean
  */
 function validateCommentForm() {
-    if (nameInput.value === "" || commentInput.value === "") {
+    let name = nameInput.value.trim();
+    let comment = nameInput.value.trim();
+    if (name === "" || comment === "") {
         submitButton.classList.add(`button_disabled`);
         submitButton.disabled = true;
         return false;
@@ -234,5 +250,5 @@ function getFormatedDate() {
 }
 
 function sanitizeHTML(text) {
-    return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    return text.trim().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
