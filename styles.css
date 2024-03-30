@@ -155,3 +155,18 @@ body {
 .button_disabled {
     background-color: gray;
 }
+
+.add-form-loading {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+}
+
+.add-form-loading-img {
+    width: 200px;
+    height: auto;
+}
+
+.add-form-loading-img_hide {
+    display: none;
+}
