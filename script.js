@@ -244,7 +244,13 @@ function initCommentStartEditListener() {
                 renderComments(false);
             });
 
+            newCommentText.addEventListener(`click`, (event) => {
+                event.stopPropagation();
+            });
+
             commentsSection.addEventListener(`keyup`, (event) => {
+                event.stopPropagation();
+
                 const newComment = sanitizeHTML(newCommentText.value);
                 if (event.key != "Enter") {
                     if (newComment === "") {
