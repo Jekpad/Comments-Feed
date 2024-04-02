@@ -38,6 +38,7 @@ body {
 
 .comment {
     padding: 48px;
+    cursor: pointer;
 }
 
 .comment-header {
@@ -67,6 +68,15 @@ body {
     border: none;
     border-radius: 18px;
     cursor: pointer;
+}
+
+.quote {
+    background: whitesmoke;
+    border-radius: 5px;
+    font-size: 14px;
+    color: black;
+    padding: 6px;
+    border-left: #202020 1px solid;
 }
 
 .likes {
@@ -144,4 +154,19 @@ body {
 
 .button_disabled {
     background-color: gray;
+}
+
+.add-form-loading {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+}
+
+.add-form-loading-img {
+    width: 200px;
+    height: auto;
+}
+
+.add-form-loading-img_hide {
+    display: none;
 }
