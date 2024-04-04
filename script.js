@@ -72,7 +72,7 @@ function renderComments(getRemoteData = true) {
  *
  * @return void
  */
-function renderAddEditComment(isLoading = false) {
+function renderAddEditComment(isLoading = false, name = "", comment = "") {
     if (isLoading) {
         addForm.innerHTML = `
             <div class="add-form-loading">
@@ -132,27 +132,17 @@ function renderAddEditComment(isLoading = false) {
                 <button id="submit-comment" class="add-form-button button_disabled" disabled>Написать</button>
             </div>
         `;
+
         nameInput = document.getElementById(`name-input`);
         commentInput = document.getElementById(`comment-input`);
         submitButton = document.getElementById(`submit-comment`);
         _deleteLastComment = document.getElementById(`delete-last-comment`);
 
-        submitButton.addEventListener(`click`, () => {
-            addComment(nameInput.value, commentInput.value, getFormatedDate());
+        submitButton.addEventListener(`click`, initAddEditCommentEvent);
+        addForm.addEventListener(`keyup`, initAddEditCommentEvent);
 
-            nameInput.value = "";
-            commentInput.value = "";
-            validateCommentForm();
-        });
-
-        addForm.addEventListener(`keyup`, (event) => {
-            if (event.key != "Enter" || !validateCommentForm()) return;
-            addComment(nameInput.value, commentInput.value, getFormatedDate());
-
-            nameInput.value = "";
-            commentInput.value = "";
-            validateCommentForm();
-        });
+        nameInput.value = name;
+        commentInput.value = comment;
 
         _deleteLastComment.addEventListener(`click`, () => {
             deleteLastComment();
@@ -167,7 +157,24 @@ function renderAddEditComment(isLoading = false) {
                 validateCommentForm();
             });
         });
+
+        validateCommentForm();
     }
+}
+
+/**
+ * Обработчик отправки комментариев
+ * @param mixed event
+ *
+ * @return void
+ */
+function initAddEditCommentEvent(event) {
+    if (event.type === "keyup" && (event.key != "Enter" || !validateCommentForm())) return;
+
+    addComment(nameInput.value, commentInput.value, getFormatedDate());
+    nameInput.value = "";
+    commentInput.value = "";
+    validateCommentForm();
 }
 
 /**
@@ -285,7 +292,11 @@ function validateCommentForm() {
     let name = nameInput.value.trim();
     let comment = commentInput.value.trim();
 
-    if (name === "" || name.length < 3 || comment === "") {
+    if (
+        name === "" ||
+        comment === ""
+        // || name.length < 3
+    ) {
         submitButton.classList.add(`button_disabled`);
         submitButton.disabled = true;
         return false;
@@ -305,8 +316,11 @@ function validateCommentForm() {
  * @return void
  */
 function addComment(name, comment, date) {
-    comment = sanitizeHTML(comment);
-    comment = comment.replaceAll("QUOTE_BEGIN", "<div class='quote'>").replaceAll("QUOTE_NEXT", "<br>").replaceAll("QUOTE_END", "</div>");
+    let clearComment = sanitizeHTML(comment);
+    clearComment = clearComment
+        .replaceAll("QUOTE_BEGIN", "<div class='quote'>")
+        .replaceAll("QUOTE_NEXT", "<br>")
+        .replaceAll("QUOTE_END", "</div>");
 
     renderAddEditComment(true);
 
@@ -314,13 +328,27 @@ function addComment(name, comment, date) {
         method: `POST`,
         body: JSON.stringify({
             name: sanitizeHTML(name),
-            text: comment,
+            text: clearComment,
+            forceError: true,
         }),
     })
-        .then((response) => response.json())
-        .then((responseData) => {
+        .then((response) => {
+            return Promise.all([response.status, response.json()]);
+        })
+        .then(([responseStatus, responseData]) => {
+            if (responseStatus === 500) {
+                addComment(name, comment);
+                return;
+            }
+            if (responseStatus !== 201) return Promise.reject(responseData.error);
             comments = responseData.comments;
             renderComments();
+            renderAddEditComment();
+        })
+        .catch((error) => {
+            if (error instanceof TypeError && error.message === "Failed to fetch") alert(`Отсутствует интернет-соединение`);
+            else alert(error);
+            renderAddEditComment(false, name, comment);
         });
 }
 
