@@ -15,21 +15,29 @@ let comments = [];
 renderComments();
 renderAddEditComment();
 
+function getComments(getRemoteData = true) {
+    if (getRemoteData) {
+        return fetch(`https://wedev-api.sky.pro/api/v1/${personalKey}/comments`, {
+            method: `GET`,
+        })
+            .then((response) => response.json())
+            .then((responseData) => {
+                return (comments = responseData.comments);
+            });
+    } else {
+        return new Promise((resolve) => resolve(comments));
+    }
+}
+
 /**
  * Отрисовка комментариев
  * @return void
  */
 function renderComments(getRemoteData = true) {
-    if (getRemoteData) {
-        renderAddEditComment(true);
-        fetch(`https://wedev-api.sky.pro/api/v1/${personalKey}/comments`, {
-            method: `GET`,
-        }).then((response) => {
-            response.json().then((responseData) => {
-                comments = responseData.comments;
-                document.getElementById(`comments`).innerHTML = comments
-                    .map((comment, index) => {
-                        return `
+    getComments(getRemoteData).then((comments) => {
+        document.getElementById(`comments`).innerHTML = comments
+            .map((comment, index) => {
+                return `
                         <li class="comment" data-id="${comment.id}", data-index="${index}">
                             <div class="comment-header">
                                 <div>${comment.author.name}</div>
@@ -47,37 +55,6 @@ function renderComments(getRemoteData = true) {
                             </div>
                         </li>
                         `;
-                    })
-                    .join(``);
-
-                renderAddEditComment();
-
-                initCommentLikeListener();
-                initCommentStartEditListener();
-                initCommentAnswerListener();
-            });
-        });
-    } else {
-        document.getElementById(`comments`).innerHTML = comments
-            .map((comment, index) => {
-                return `
-            <li class="comment" data-id="${comment.id}", data-index="${index}">
-                <div class="comment-header">
-                    <div>${comment.author.name}</div>
-                    <div>${comment.date}</div>
-                </div>
-                <div class="comment-body">
-                    <div class="comment-text">${comment.text}</div>
-                </div>
-                <div class="comment-footer">
-                    <button class="comment-button">Редактировать</button>
-                    <div class="likes">
-                        <span class="likes-counter">${comment.likes}</span>
-                        <button class="like-button ${comment.isLiked ? "-active-like" : ""}"></button>
-                    </div>
-                </div>
-            </li>
-            `;
             })
             .join(``);
 
@@ -86,7 +63,7 @@ function renderComments(getRemoteData = true) {
         initCommentLikeListener();
         initCommentStartEditListener();
         initCommentAnswerListener();
-    }
+    });
 }
 
 /**
@@ -203,11 +180,24 @@ function initCommentLikeListener() {
     buttons.forEach((button) => {
         button.addEventListener(`click`, (event) => {
             event.stopPropagation();
+
+            button.classList.add(`-loading-like`);
+
             const comment = comments[button.closest(`.comment`).dataset.index];
 
-            comment.likes += comment.isLiked ? -1 : 1;
-            comment.isLiked = !comment.isLiked;
-            renderComments(false);
+            const delay = (interval = 300) => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve();
+                    }, interval);
+                });
+            };
+
+            delay(1500).then(() => {
+                comment.likes += comment.isLiked ? -1 : 1;
+                comment.isLiked = !comment.isLiked;
+                renderComments(false);
+            });
         });
     });
 }
@@ -281,12 +271,8 @@ function initCommentAnswerListener() {
                 .replaceAll("<div class='quote'>", "QUOTE_BEGIN")
                 .replaceAll("<br>", "QUOTE_NEXT")
                 .replaceAll("</div>", "QUOTE_END");
-            commentInput.value = `QUOTE_BEGIN${commentObject.name}QUOTE_NEXT${commentText}QUOTE_END\n`;
+            commentInput.value = `QUOTE_BEGIN${commentObject.author.name}QUOTE_NEXT${commentText}QUOTE_END\n`;
             validateCommentForm();
-
-            // if (event.target.dataset.index != undefined) {
-            //     nameInput.scrollIntoView();
-            // }
         });
     });
 }
@@ -330,12 +316,12 @@ function addComment(name, comment, date) {
             name: sanitizeHTML(name),
             text: comment,
         }),
-    }).then((response) => {
-        response.json().then((responseData) => {
+    })
+        .then((response) => response.json())
+        .then((responseData) => {
             comments = responseData.comments;
             renderComments();
         });
-    });
 }
 
 /**
