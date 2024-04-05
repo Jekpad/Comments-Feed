@@ -15,14 +15,35 @@ let comments = [];
 renderComments();
 renderAddEditComment();
 
+/**
+ * Получить список комментариев
+ * @param getRemoteData
+ * @returns {Promise<any>|Promise<unknown>}
+ */
 function getComments(getRemoteData = true) {
     if (getRemoteData) {
         return fetch(`https://wedev-api.sky.pro/api/v1/${personalKey}/comments`, {
             method: `GET`,
         })
-            .then((response) => response.json())
-            .then((responseData) => {
-                return (comments = responseData.comments);
+            .then((response) => {
+                return Promise.all([response.status, response.json()]);
+            })
+            .then(([responseStatus, responseData]) => {
+                if (responseStatus === 200 || responseStatus === 201) {
+                    return (comments = responseData.comments);
+                }
+                return Promise.reject();
+            })
+            .catch((error) => {
+                if (error instanceof TypeError && error.message === "Failed to fetch") {
+                    alert(`Отсутствует интернет-соединение.`);
+                } else {
+                    setTimeout(() => {
+                        renderComments();
+                    }, 1000);
+                }
+
+                return Promise.reject();
             });
     } else {
         return new Promise((resolve) => resolve(comments));
@@ -34,14 +55,16 @@ function getComments(getRemoteData = true) {
  * @return void
  */
 function renderComments(getRemoteData = true) {
-    getComments(getRemoteData).then((comments) => {
-        document.getElementById(`comments`).innerHTML = comments
-            .map((comment, index) => {
-                return `
+    getComments(getRemoteData)
+        .then((comments) => {
+            if (comments === undefined) return;
+            document.getElementById(`comments`).innerHTML = comments
+                .map((comment, index) => {
+                    return `
                         <li class="comment" data-id="${comment.id}", data-index="${index}">
                             <div class="comment-header">
                                 <div>${comment.author.name}</div>
-                                <div>${comment.date}</div>
+                                <div>${getFormatedDate(comment.date)}</div>
                             </div>
                             <div class="comment-body">
                                 <div class="comment-text">${comment.text}</div>
@@ -55,22 +78,24 @@ function renderComments(getRemoteData = true) {
                             </div>
                         </li>
                         `;
-            })
-            .join(``);
+                })
+                .join(``);
 
-        renderAddEditComment();
+            renderAddEditComment();
 
-        initCommentLikeListener();
-        initCommentStartEditListener();
-        initCommentAnswerListener();
-    });
+            initCommentLikeListener();
+            initCommentStartEditListener();
+            initCommentAnswerListener();
+        }).catch();
 }
 
 /**
  * Отрисовка формы добавления/редактирования комментариев
- * @param bool isLoading Блокировать ввод на время записи комментария
  *
  * @return void
+ * @param isLoading
+ * @param name
+ * @param comment
  */
 function renderAddEditComment(isLoading = false, name = "", comment = "") {
     if (isLoading) {
@@ -78,7 +103,7 @@ function renderAddEditComment(isLoading = false, name = "", comment = "") {
             <div class="add-form-loading">
                 <h3>Комментарий добавляется</h3>
                 <?xml version="1.0" encoding="utf-8"?>
-                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin: auto; background: none; display: block; shape-rendering: auto;" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+                    <svg class="loading-image" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin: auto; background: none; display: block; shape-rendering: auto;" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
                     <g transform="rotate(0 50 50)">
                     <rect x="44" y="21" rx="6" ry="6" width="12" height="12" fill="#bcec30">
                         <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="2.5s" begin="-2.25s" repeatCount="indefinite"></animate>
@@ -164,14 +189,14 @@ function renderAddEditComment(isLoading = false, name = "", comment = "") {
 
 /**
  * Обработчик отправки комментариев
- * @param mixed event
+ * @param event
  *
  * @return void
  */
 function initAddEditCommentEvent(event) {
-    if (event.type === "keyup" && (event.key != "Enter" || !validateCommentForm())) return;
+    if (event.type === "keyup" && (event.key !== "Enter" || !validateCommentForm())) return;
 
-    addComment(nameInput.value, commentInput.value, getFormatedDate());
+    addComment(nameInput.value, commentInput.value);
     nameInput.value = "";
     commentInput.value = "";
     validateCommentForm();
@@ -249,12 +274,8 @@ function initCommentStartEditListener() {
                 event.stopPropagation();
 
                 const newComment = sanitizeHTML(newCommentText.value);
-                if (event.key != "Enter") {
-                    if (newComment === "") {
-                        newButton.disabled = true;
-                    } else {
-                        newButton.disabled = false;
-                    }
+                if (event.key !== "Enter") {
+                    newButton.disabled = newComment === "";
                     return;
                 }
                 commentObject.text = sanitizeHTML(newCommentText.value);
@@ -271,7 +292,7 @@ function initCommentStartEditListener() {
 function initCommentAnswerListener() {
     const commentsElements = document.querySelectorAll(`.comment`);
     commentsElements.forEach((comment) => {
-        comment.addEventListener(`click`, (event) => {
+        comment.addEventListener(`click`, () => {
             const commentObject = comments[comment.dataset.index];
             let commentText = commentObject.text;
             commentText = commentText
@@ -309,13 +330,12 @@ function validateCommentForm() {
 
 /**
  * Добавить новый комментарий пользователя
- * @param string name
- * @param string comment
- * @param string date
+ * @param name
+ * @param comment
  *
  * @return void
  */
-function addComment(name, comment, date) {
+function addComment(name, comment) {
     let clearComment = sanitizeHTML(comment);
     clearComment = clearComment
         .replaceAll("QUOTE_BEGIN", "<div class='quote'>")
@@ -358,17 +378,18 @@ function addComment(name, comment, date) {
  */
 function deleteLastComment() {
     comments.pop();
-    renderComments();
+    renderComments(false);
 }
 
 /**
  * Получить текущую дату в формате dd.mm.YYYY hh:mm
  * @return string
  */
-function getFormatedDate() {
+function getFormatedDate(date = null) {
     let formatDateDigits = (digit) => (digit <= 9 ? `0${digit}` : digit);
 
-    let date = new Date();
+    if (date.length > 0)
+        date = new Date(date);
 
     let day = formatDateDigits(date.getDate());
     let month = formatDateDigits(date.getMonth() + 1);
@@ -380,6 +401,11 @@ function getFormatedDate() {
     return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
 
+/**
+ * Очистка данных из формы ввода
+ * @param text
+ * @returns {string}
+ */
 function sanitizeHTML(text) {
     return text.trim().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
