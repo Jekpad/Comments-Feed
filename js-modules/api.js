@@ -45,8 +45,7 @@ export function postComment(name, comment) {
         })
         .then(([responseStatus, responseData]) => {
             if (responseStatus === 500) {
-                postComment(name, comment);
-                return Promise.reject();
+                return  postComment(name, comment);
             }
             if (responseStatus !== 201) return Promise.reject(responseData.error);
             return Promise.resolve(responseData.comments);
