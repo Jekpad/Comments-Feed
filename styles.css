@@ -190,24 +190,7 @@ body {
     display: none;
 }
 
-.loading-image {
+.loading-image{
     width: 200px;
     height: auto;
-}
-
-.link {
-    color: #ffffff;
-    text-underline: #ffffff;
-}
-
-
-/* login */
-.login-form {
-    gap: 10px;
-}
-
-.login-form * {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
 }

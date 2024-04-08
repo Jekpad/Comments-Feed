@@ -1,8 +1,5 @@
 "use strict";
-import * as api from "./js-modules/api.js";
-import * as comments from "./js-modules/renderComments.js";
+import * as elements from "./js-modules/renderElements.js";
 
-
-api.restoreLocalData();
-comments.renderCommentsSection();
+elements.renderComments();
 
