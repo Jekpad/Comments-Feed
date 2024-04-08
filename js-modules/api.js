@@ -120,7 +120,7 @@ export function authorization(login, password) {
         }
         return Promise.reject(responseData);
     }).catch((error) => {
-        if (error instanceof TypeError && error.message === "Failed to fetch") alert(`Отсутствует интернет-соединение`);
+        if (error instanceof TypeError && error.message === "Failed to fetch") return Promise.reject({error: `Отсутствует интернет-соединение`});
         return Promise.reject(error);
     });
 }
@@ -150,7 +150,7 @@ export function registration(login, password, name) {
         }
         return Promise.reject(responseData);
     }).catch((error) => {
-        if (error instanceof TypeError && error.message === "Failed to fetch") alert(`Отсутствует интернет-соединение`);
+        if (error instanceof TypeError && error.message === "Failed to fetch") return Promise.reject({error: `Отсутствует интернет-соединение`});
         return Promise.reject(error);
     });
 }
