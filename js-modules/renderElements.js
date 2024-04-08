@@ -1,6 +1,5 @@
-"use strict";
-
-const personalKey = "uvarov-ms";
+import * as sanitizeData from "./sanitizeData.js";
+import * as api from "./api.js";
 
 const commentsSection = document.getElementById(`comments`);
 
@@ -8,77 +7,73 @@ const addForm = document.getElementById(`add-form`);
 let nameInput = document.getElementById(`name-input`);
 let commentInput = document.getElementById(`comment-input`);
 let submitButton = document.getElementById(`submit-comment`);
-let _deleteLastComment = document.getElementById(`delete-last-comment`);
 
 let comments = [];
-
-renderComments();
-renderAddEditComment();
-
-function getComments(getRemoteData = true) {
-    if (getRemoteData) {
-        return fetch(`https://wedev-api.sky.pro/api/v1/${personalKey}/comments`, {
-            method: `GET`,
-        })
-            .then((response) => response.json())
-            .then((responseData) => {
-                return (comments = responseData.comments);
-            });
-    } else {
-        return new Promise((resolve) => resolve(comments));
-    }
-}
 
 /**
  * Отрисовка комментариев
  * @return void
  */
-function renderComments(getRemoteData = true) {
-    getComments(getRemoteData).then((comments) => {
-        document.getElementById(`comments`).innerHTML = comments
-            .map((comment, index) => {
-                return `
-                        <li class="comment" data-id="${comment.id}", data-index="${index}">
-                            <div class="comment-header">
-                                <div>${comment.author.name}</div>
-                                <div>${comment.date}</div>
-                            </div>
-                            <div class="comment-body">
-                                <div class="comment-text">${comment.text}</div>
-                            </div>
-                            <div class="comment-footer">
-                                <button class="comment-button">Редактировать</button>
-                                <div class="likes">
-                                    <span class="likes-counter">${comment.likes}</span>
-                                    <button class="like-button ${comment.isLiked ? "-active-like" : ""}"></button>
-                                </div>
-                            </div>
-                        </li>
-                        `;
-            })
-            .join(``);
+export function renderComments(getRemoteData = true) {
+    const render = (comments) => {
+        commentsSection.innerHTML = comments.map((comment, index) => {
+            return `
+                <li class="comment" data-id="${comment.id}" data-index="${index}">
+                    <div class="comment-header">
+                        <div>${comment.author.name}</div>
+                        <div>${sanitizeData.getFormatedDate(comment.date)}</div>
+                    </div>
+                        <div class="comment-body">
+                        <div class="comment-text">${comment.text}</div>
+                    </div>
+                    <div class="comment-footer">
+                        <button class="comment-button">Редактировать</button>
+                        <div class="likes">
+                            <span class="likes-counter">${comment.likes}</span>
+                            <button class="like-button ${comment.isLiked ? "-active-like" : ""}"></button>
+                        </div>
+                    </div>
+                </li>`;
+        }).join(``);
+    }
 
-        renderAddEditComment();
+    if (!getRemoteData) {
+        render(comments);
 
         initCommentLikeListener();
         initCommentStartEditListener();
         initCommentAnswerListener();
-    });
+
+        renderAddEditComment();
+    } else {
+        api.getComments().then((returnedComments) => {
+            if (returnedComments === undefined) return;
+            render(comments = returnedComments);
+
+            initCommentLikeListener();
+            initCommentStartEditListener();
+            initCommentAnswerListener();
+
+            renderAddEditComment();
+        });
+    }
 }
 
 /**
  * Отрисовка формы добавления/редактирования комментариев
- * @param bool isLoading Блокировать ввод на время записи комментария
  *
  * @return void
+ * @param isLoading
+ * @param name
+ * @param comment
  */
-function renderAddEditComment(isLoading = false) {
+export function renderAddEditComment(isLoading = false, name = "", comment = "") {
     if (isLoading) {
         addForm.innerHTML = `
             <div class="add-form-loading">
                 <h3>Комментарий добавляется</h3>
                 <?xml version="1.0" encoding="utf-8"?>
-                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin: auto; background: none; display: block; shape-rendering: auto;" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+                    <svg class="loading-image" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin: auto; background: none; display: block; shape-rendering: auto;" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
                     <g transform="rotate(0 50 50)">
                     <rect x="44" y="21" rx="6" ry="6" width="12" height="12" fill="#bcec30">
                         <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="2.5s" begin="-2.25s" repeatCount="indefinite"></animate>
@@ -123,51 +118,55 @@ function renderAddEditComment(isLoading = false) {
                     <!-- [ldio] generated by https://loading.io/ --></svg>
             </div> 
         `;
-    } else {
-        addForm.innerHTML = `
+        return;
+    }
+
+    addForm.innerHTML = `
             <input id="name-input" type="text" class="add-form-name" placeholder="Введите имя (не менее 3 символов)" />
-            <textarea id="comment-input" type="textarea" class="add-form-text" placeholder="Введите ваш коментарий" rows="4"></textarea>
+            <textarea id="comment-input" class="add-form-text" placeholder="Введите ваш комментарий" rows="4"></textarea>
             <div class="add-form-row">
                 <button id="delete-last-comment" class="add-form-button">Удалить последний комментарий</button>
                 <button id="submit-comment" class="add-form-button button_disabled" disabled>Написать</button>
             </div>
         `;
-        nameInput = document.getElementById(`name-input`);
-        commentInput = document.getElementById(`comment-input`);
-        submitButton = document.getElementById(`submit-comment`);
-        _deleteLastComment = document.getElementById(`delete-last-comment`);
 
-        submitButton.addEventListener(`click`, () => {
-            addComment(nameInput.value, commentInput.value, getFormatedDate());
+    nameInput = document.getElementById(`name-input`);
+    commentInput = document.getElementById(`comment-input`);
+    submitButton = document.getElementById(`submit-comment`);
+    let _deleteLastComment = document.getElementById(`delete-last-comment`);
 
-            nameInput.value = "";
-            commentInput.value = "";
+    nameInput.value = name;
+    commentInput.value = comment;
+
+    submitButton.addEventListener(`click`, initAddEditCommentEvent);
+    addForm.addEventListener(`keyup`, initAddEditCommentEvent);
+
+    _deleteLastComment.addEventListener(`click`, () => {
+        deleteLastComment();
+    });
+
+    [nameInput, commentInput].forEach((input) => {
+        input.addEventListener(`input`, () => {
             validateCommentForm();
         });
 
-        addForm.addEventListener(`keyup`, (event) => {
-            if (event.key != "Enter" || !validateCommentForm()) return;
-            addComment(nameInput.value, commentInput.value, getFormatedDate());
-
-            nameInput.value = "";
-            commentInput.value = "";
+        input.addEventListener(`keyup`, () => {
             validateCommentForm();
         });
+    });
 
-        _deleteLastComment.addEventListener(`click`, () => {
-            deleteLastComment();
-        });
+    validateCommentForm();
+}
 
-        [nameInput, commentInput].forEach((input) => {
-            input.addEventListener(`input`, () => {
-                validateCommentForm();
-            });
-
-            input.addEventListener(`keyup`, () => {
-                validateCommentForm();
-            });
-        });
-    }
+/**
+ * Обработчик отправки комментариев
+ * @param event
+ *
+ * @return void
+ */
+function initAddEditCommentEvent(event) {
+    if (event.type === "keyup" && (event.key !== "Enter" || !validateCommentForm())) return;
+    addComment(nameInput.value, commentInput.value);
 }
 
 /**
@@ -230,7 +229,7 @@ function initCommentStartEditListener() {
             newButton.addEventListener(`click`, (event) => {
                 event.stopPropagation();
                 if (newCommentText.value === "") return;
-                commentObject.text = sanitizeHTML(newCommentText.value);
+                commentObject.text = sanitizeData.sanitizeHTML(newCommentText.value);
                 renderComments(false);
             });
 
@@ -238,19 +237,15 @@ function initCommentStartEditListener() {
                 event.stopPropagation();
             });
 
-            commentsSection.addEventListener(`keyup`, (event) => {
+            commentStructure.addEventListener(`keyup`, (event) => {
                 event.stopPropagation();
 
-                const newComment = sanitizeHTML(newCommentText.value);
-                if (event.key != "Enter") {
-                    if (newComment === "") {
-                        newButton.disabled = true;
-                    } else {
-                        newButton.disabled = false;
-                    }
+                const newComment = sanitizeData.sanitizeHTML(newCommentText.value);
+                if (event.key !== "Enter") {
+                    newButton.disabled = newComment === "";
                     return;
                 }
-                commentObject.text = sanitizeHTML(newCommentText.value);
+                commentObject.text = sanitizeData.sanitizeHTML(newCommentText.value);
                 renderComments(false);
             });
         });
@@ -258,13 +253,13 @@ function initCommentStartEditListener() {
 }
 
 /**
- * Возможность комментировать чужой пост
+ * Обработчик комментариев чужого поста
  * @return void
  */
 function initCommentAnswerListener() {
     const commentsElements = document.querySelectorAll(`.comment`);
     commentsElements.forEach((comment) => {
-        comment.addEventListener(`click`, (event) => {
+        comment.addEventListener(`click`, () => {
             const commentObject = comments[comment.dataset.index];
             let commentText = commentObject.text;
             commentText = commentText
@@ -278,50 +273,28 @@ function initCommentAnswerListener() {
 }
 
 /**
- * Валидация формы заполнения комментариев
- * @return boolean
- */
-function validateCommentForm() {
-    let name = nameInput.value.trim();
-    let comment = commentInput.value.trim();
-
-    if (name === "" || name.length < 3 || comment === "") {
-        submitButton.classList.add(`button_disabled`);
-        submitButton.disabled = true;
-        return false;
-    } else {
-        submitButton.classList.remove(`button_disabled`);
-        submitButton.disabled = false;
-        return true;
-    }
-}
-
-/**
  * Добавить новый комментарий пользователя
- * @param string name
- * @param string comment
- * @param string date
+ * @param name
+ * @param comment
  *
  * @return void
  */
-function addComment(name, comment, date) {
-    comment = sanitizeHTML(comment);
-    comment = comment.replaceAll("QUOTE_BEGIN", "<div class='quote'>").replaceAll("QUOTE_NEXT", "<br>").replaceAll("QUOTE_END", "</div>");
+function addComment(name, comment) {
+    let clearName = sanitizeData.sanitizeHTML(name);
+    let clearComment = sanitizeData.sanitizeHTML(comment);
+    clearComment = clearComment
+        .replaceAll("QUOTE_BEGIN", "<div class='quote'>")
+        .replaceAll("QUOTE_NEXT", "<br>")
+        .replaceAll("QUOTE_END", "</div>");
 
     renderAddEditComment(true);
 
-    fetch(`https://wedev-api.sky.pro/api/v1/${personalKey}/comments`, {
-        method: `POST`,
-        body: JSON.stringify({
-            name: sanitizeHTML(name),
-            text: comment,
-        }),
-    })
-        .then((response) => response.json())
-        .then((responseData) => {
-            comments = responseData.comments;
-            renderComments();
-        });
+    api.postComment(clearName, clearComment).then(() => {
+        renderAddEditComment(false);
+        renderComments();
+    }).catch(() => {
+        renderAddEditComment(false, name, comment);
+    });
 }
 
 /**
@@ -330,28 +303,27 @@ function addComment(name, comment, date) {
  */
 function deleteLastComment() {
     comments.pop();
-    renderComments();
+    renderComments(false);
 }
 
 /**
- * Получить текущую дату в формате dd.mm.YYYY hh:mm
- * @return string
+ * Валидация формы заполнения комментариев
+ * @return boolean
  */
-function getFormatedDate() {
-    let formatDateDigits = (digit) => (digit <= 9 ? `0${digit}` : digit);
+function validateCommentForm() {
+    let name = nameInput.value.trim();
+    let comment = commentInput.value.trim();
 
-    let date = new Date();
-
-    let day = formatDateDigits(date.getDate());
-    let month = formatDateDigits(date.getMonth() + 1);
-    let year = date.getFullYear();
-
-    let hours = formatDateDigits(date.getHours());
-    let minutes = formatDateDigits(date.getMinutes());
-
-    return `${day}.${month}.${year} ${hours}:${minutes}`;
-}
-
-function sanitizeHTML(text) {
-    return text.trim().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    if (
+        name === "" ||
+        comment === ""
+    ) {
+        submitButton.classList.add(`button_disabled`);
+        submitButton.disabled = true;
+        return false;
+    } else {
+        submitButton.classList.remove(`button_disabled`);
+        submitButton.disabled = false;
+        return true;
+    }
 }
