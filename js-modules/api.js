@@ -54,10 +54,7 @@ export function getComments() {
             return Promise.reject()
         })
         .catch((error) => {
-            if (
-                error instanceof TypeError &&
-                error.message === 'Failed to fetch'
-            ) {
+            if (error instanceof TypeError && error.message === 'Failed to fetch') {
                 alert('Отсутствует интернет-соединение.')
             } else {
                 setTimeout(() => {
@@ -90,15 +87,11 @@ export function postComment(name, comment) {
             if (responseStatus === 500) {
                 return postComment(name, comment)
             }
-            if (responseStatus !== 201)
-                return Promise.reject(responseData.error)
+            if (responseStatus !== 201) return Promise.reject(responseData.error)
             return Promise.resolve(responseData.comments)
         })
         .catch((error) => {
-            if (
-                error instanceof TypeError &&
-                error.message === 'Failed to fetch'
-            )
+            if (error instanceof TypeError && error.message === 'Failed to fetch')
                 alert('Отсутствует интернет-соединение')
             else if (error !== undefined && error.length > 0) alert(error)
             return Promise.reject()
@@ -131,13 +124,8 @@ export function authorization(login, password) {
             return Promise.reject(responseData)
         })
         .catch((error) => {
-            if (
-                error instanceof TypeError &&
-                error.message === 'Failed to fetch'
-            )
-                return Promise.reject({
-                    error: 'Отсутствует интернет-соединение',
-                })
+            if (error instanceof TypeError && error.message === 'Failed to fetch')
+                return Promise.reject({ error: 'Отсутствует интернет-соединение' })
             return Promise.reject(error)
         })
 }
@@ -170,13 +158,8 @@ export function registration(login, password, name) {
             return Promise.reject(responseData)
         })
         .catch((error) => {
-            if (
-                error instanceof TypeError &&
-                error.message === 'Failed to fetch'
-            )
-                return Promise.reject({
-                    error: 'Отсутствует интернет-соединение',
-                })
+            if (error instanceof TypeError && error.message === 'Failed to fetch')
+                return Promise.reject({ error: 'Отсутствует интернет-соединение' })
             return Promise.reject(error)
         })
 }
