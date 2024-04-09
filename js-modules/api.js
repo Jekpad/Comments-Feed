@@ -1,37 +1,37 @@
-const personalKey = `uvarov-ms`;
+const personalKey = 'uvarov-ms'
 const apiURL = `https://wedev-api.sky.pro/api/v2/${personalKey}`
 
-let userToken = "";
-let userName = "";
+let userToken = ''
+let userName = ''
 
 export function setToken(token) {
-    userToken = `Bearer ${token}`;
-    setLocalData();
+    userToken = `Bearer ${token}`
+    setLocalData()
 }
 
 export function getToken() {
-    return userToken;
+    return userToken
 }
 
 export function setUserName(name) {
-    userName = name;
-    setLocalData();
+    userName = name
+    setLocalData()
 }
 
 export function getUserName() {
-    return userName;
+    return userName
 }
 
 export function setLocalData() {
-    localStorage.setItem("userToken", userToken);
-    localStorage.setItem("userName", userName);
+    localStorage.setItem('userToken', userToken)
+    localStorage.setItem('userName', userName)
 }
 
 export function restoreLocalData() {
-    let _token = localStorage.getItem("userToken");
-    userToken = typeof _token === "string" ? _token : "";
-    let name = localStorage.getItem("userName");
-    userName = typeof name === "string" ? name : "";
+    let _token = localStorage.getItem('userToken')
+    userToken = typeof _token === 'string' ? _token : ''
+    let name = localStorage.getItem('userName')
+    userName = typeof name === 'string' ? name : ''
 }
 
 /**
@@ -39,30 +39,33 @@ export function restoreLocalData() {
  */
 export function getComments() {
     return fetch(`${apiURL}/comments`, {
-        method: `GET`,
+        method: 'GET',
         headers: {
-            Authorization: getToken()
+            Authorization: getToken(),
         },
     })
         .then((response) => {
-            return Promise.all([response.status, response.json()]);
+            return Promise.all([response.status, response.json()])
         })
         .then(([responseStatus, responseData]) => {
             if (responseStatus === 200 || responseStatus === 201) {
-                return (responseData.comments);
+                return responseData.comments
             }
-            return Promise.reject();
+            return Promise.reject()
         })
         .catch((error) => {
-            if (error instanceof TypeError && error.message === "Failed to fetch") {
-                alert(`Отсутствует интернет-соединение.`);
+            if (
+                error instanceof TypeError &&
+                error.message === 'Failed to fetch'
+            ) {
+                alert('Отсутствует интернет-соединение.')
             } else {
                 setTimeout(() => {
-                    return getComments();
-                }, 1000);
+                    return getComments()
+                }, 1000)
             }
-            return Promise.reject();
-        });
+            return Promise.reject()
+        })
 }
 
 /**
@@ -70,9 +73,9 @@ export function getComments() {
  */
 export function postComment(name, comment) {
     return fetch(`${apiURL}/comments`, {
-        method: `POST`,
+        method: 'POST',
         headers: {
-            Authorization: getToken()
+            Authorization: getToken(),
         },
         body: JSON.stringify({
             name: name,
@@ -81,20 +84,25 @@ export function postComment(name, comment) {
         }),
     })
         .then((response) => {
-            return Promise.all([response.status, response.json()]);
+            return Promise.all([response.status, response.json()])
         })
         .then(([responseStatus, responseData]) => {
             if (responseStatus === 500) {
-                return postComment(name, comment);
+                return postComment(name, comment)
             }
-            if (responseStatus !== 201) return Promise.reject(responseData.error);
-            return Promise.resolve(responseData.comments);
+            if (responseStatus !== 201)
+                return Promise.reject(responseData.error)
+            return Promise.resolve(responseData.comments)
         })
         .catch((error) => {
-            if (error instanceof TypeError && error.message === "Failed to fetch") alert(`Отсутствует интернет-соединение`);
-            else if (error !== undefined && error.length > 0) alert(error);
-            return Promise.reject();
-        });
+            if (
+                error instanceof TypeError &&
+                error.message === 'Failed to fetch'
+            )
+                alert('Отсутствует интернет-соединение')
+            else if (error !== undefined && error.length > 0) alert(error)
+            return Promise.reject()
+        })
 }
 
 /**
@@ -104,25 +112,34 @@ export function postComment(name, comment) {
  * @returns {Promise<void>}
  */
 export function authorization(login, password) {
-    return fetch(`https://wedev-api.sky.pro/api/user/login`, {
-        method: `POST`,
+    return fetch('https://wedev-api.sky.pro/api/user/login', {
+        method: 'POST',
         body: JSON.stringify({
             login: login,
-            password: password
+            password: password,
+        }),
+    })
+        .then((response) => {
+            return Promise.all([response.status, response.json()])
         })
-    }).then((response) => {
-        return Promise.all([response.status, response.json()])
-    }).then(([responseStatus, responseData]) => {
-        if (responseStatus === 201) {
-            setToken(responseData.user.token);
-            setUserName(responseData.user.name);
-            return Promise.resolve();
-        }
-        return Promise.reject(responseData);
-    }).catch((error) => {
-        if (error instanceof TypeError && error.message === "Failed to fetch") return Promise.reject({error: `Отсутствует интернет-соединение`});
-        return Promise.reject(error);
-    });
+        .then(([responseStatus, responseData]) => {
+            if (responseStatus === 201) {
+                setToken(responseData.user.token)
+                setUserName(responseData.user.name)
+                return Promise.resolve()
+            }
+            return Promise.reject(responseData)
+        })
+        .catch((error) => {
+            if (
+                error instanceof TypeError &&
+                error.message === 'Failed to fetch'
+            )
+                return Promise.reject({
+                    error: 'Отсутствует интернет-соединение',
+                })
+            return Promise.reject(error)
+        })
 }
 
 /**
@@ -133,24 +150,33 @@ export function authorization(login, password) {
  * @returns {Promise<void>}
  */
 export function registration(login, password, name) {
-    return fetch(`https://wedev-api.sky.pro/api/user`, {
-        method: `POST`,
+    return fetch('https://wedev-api.sky.pro/api/user', {
+        method: 'POST',
         body: JSON.stringify({
             name: name,
             login: login,
-            password: password
+            password: password,
+        }),
+    })
+        .then((response) => {
+            return Promise.all([response.status, response.json()])
         })
-    }).then((response) => {
-        return Promise.all([response.status, response.json()])
-    }).then(([responseStatus, responseData]) => {
-        if (responseStatus === 201) {
-            setToken(responseData.user.token);
-            setUserName(responseData.user.name);
-            return Promise.resolve();
-        }
-        return Promise.reject(responseData);
-    }).catch((error) => {
-        if (error instanceof TypeError && error.message === "Failed to fetch") return Promise.reject({error: `Отсутствует интернет-соединение`});
-        return Promise.reject(error);
-    });
+        .then(([responseStatus, responseData]) => {
+            if (responseStatus === 201) {
+                setToken(responseData.user.token)
+                setUserName(responseData.user.name)
+                return Promise.resolve()
+            }
+            return Promise.reject(responseData)
+        })
+        .catch((error) => {
+            if (
+                error instanceof TypeError &&
+                error.message === 'Failed to fetch'
+            )
+                return Promise.reject({
+                    error: 'Отсутствует интернет-соединение',
+                })
+            return Promise.reject(error)
+        })
 }
