@@ -1,25 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
     <head>
         <title>Проект "Комменты"</title>
         <meta charset="utf-8" />
-        <link rel="stylesheet" href="styles.css" />
+        <link rel="stylesheet" href="styles.css?v1" />
     </head>
 
     <body>
-        <div class="container">
-            <ul id="comments" class="comments">
-                <!-- контент генерируется при помощи js -->
-                <div class="add-form-loading">
-                    <h3>Список комментариев загружается...</h3>
-                    <img class="loading-image" src="./res/Spinner-2.5s-200px.svg" alt="Список комментариев загружается" srcset="" />
-                </div>
-            </ul>
-            <div id="add-form" class="add-form">
-                <!-- контент генерируется при помощи js -->
-            </div>
-        </div>
+        <div id="app" class="container"></div>
     </body>
 
-    <script src="./script.js"></script>
+    <script type="module" src="./dist/main.js?v1"></script>
 </html>
